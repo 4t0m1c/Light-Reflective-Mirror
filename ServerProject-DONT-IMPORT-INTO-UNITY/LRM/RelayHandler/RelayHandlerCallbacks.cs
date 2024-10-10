@@ -30,12 +30,6 @@ namespace LightReflectiveMirror {
 
                 OpCodes opcode = (OpCodes) data.ReadByte (ref pos);
 
-                if ((int) opcode == 200) {
-                    Program.WriteLogMessage ($"Client [{clientId}] heartbeat");
-                } else {
-                    Program.WriteLogMessage ($"Client [{clientId}] request: [{opcode}]");
-                }
-
                 if (_pendingAuthentication.Contains (clientId)) {
                     if (opcode == OpCodes.AuthenticationResponse) {
                         string authResponse = data.ReadString (ref pos);
@@ -58,6 +52,7 @@ namespace LightReflectiveMirror {
 
                 switch (opcode) {
                     case OpCodes.CreateRoom:
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}]");
                         CreateRoom (clientId,
                             data.ReadInt (ref pos),
                             data.ReadString (ref pos),
@@ -72,21 +67,26 @@ namespace LightReflectiveMirror {
                         );
                         break;
                     case OpCodes.RequestID:
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}]");
                         SendClientID (clientId);
                         break;
                     case OpCodes.LeaveRoom:
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}]");
                         LeaveRoom (clientId);
                         break;
                     case OpCodes.JoinServer:
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}]");
                         JoinRoom (clientId, data.ReadString (ref pos), data.ReadBool (ref pos), data.ReadString (ref pos));
                         break;
                     case OpCodes.KickPlayer:
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}]");
                         LeaveRoom (data.ReadInt (ref pos), clientId);
                         break;
                     case OpCodes.SendData:
                         ProcessData (clientId, data.ReadBytes (ref pos), channel, data.ReadInt (ref pos));
                         break;
                     case OpCodes.UpdateRoomData:
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}]");
                         var plyRoom = _cachedClientRooms[clientId];
 
                         if (plyRoom == null || plyRoom.hostId != clientId)
@@ -119,6 +119,7 @@ namespace LightReflectiveMirror {
                         int appId = data.ReadInt (ref pos);
                         string version = data.ReadString (ref pos);
 
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}] - ServerId: [{serverId}]");
                         HandleRecreateRoom (clientId, serverId, maxPlayers, serverName, isPublic, serverData,
                             useDirectConnect, hostLocalIP, useNatPunch, port, appId, version);
                         break;
