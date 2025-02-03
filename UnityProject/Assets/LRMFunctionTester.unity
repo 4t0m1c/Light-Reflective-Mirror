@@ -548,12 +548,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clientToServerTransport: {fileID: 978065553}
-  serverIP: makegamesplay.games
+  serverIP: 127.0.0.1
   serverPort: 7777
   endpointServerPort: 8080
   heartBeatInterval: 3
   connectOnAwake: 1
-  authenticationKey: OWGX300
+  authenticationKey: Secret Auth Key
   disconnectedFromRelay:
     m_PersistentCalls:
       m_Calls: []
