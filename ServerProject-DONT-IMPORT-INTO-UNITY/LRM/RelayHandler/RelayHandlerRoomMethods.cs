@@ -43,6 +43,8 @@ namespace LightReflectiveMirror {
             _cachedClientRooms.Add (clientId, room);
             _cachedRooms.Add (room.serverId, room);
 
+            Console.WriteLine ($"[{DateTime.UtcNow}] Client [{clientId}] | Room Created [{room.serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
+
             int pos = 0;
             byte[] sendBuffer = _sendBuffers.Rent (5);
 
@@ -56,7 +58,7 @@ namespace LightReflectiveMirror {
         }
 
         private void HandleRecreateRoom (int clientId, string serverId, int maxPlayers, string serverName, bool isPublic, string serverData, bool useDirectConnect, string hostLocalIP, bool useNatPunch, int port, int appId, string version) {
-            Console.WriteLine ($"LRM Server | Attempting to recreate room with ID: {serverId}");
+            Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | Attempting to recreate room with ID: {serverId}");
 
             if (_cachedRooms.TryGetValue (serverId, out Room existingRoom)) {
                 // Update existing room
@@ -76,14 +78,14 @@ namespace LightReflectiveMirror {
                 _cachedClientRooms[clientId] = existingRoom;
 
                 SendRoomCreatedResponse (clientId, serverId);
-                Console.WriteLine ($"LRM Server | Room recreated successfully with ID: {serverId}");
+                Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | Room recreated successfully with ID: {serverId}");
             } else {
                 // Attempt to create a new room with the provided server ID
                 try {
                     CreateRoom (clientId, maxPlayers, serverName, isPublic, serverData, useDirectConnect, hostLocalIP, useNatPunch, port, appId, version, serverId);
-                    Console.WriteLine ($"LRM Server | New room created with provided ID: {serverId}");
+                    Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | New room created with provided ID: {serverId}");
                 } catch (Exception e) {
-                    Console.WriteLine ($"LRM Server | Failed to create room with ID {serverId}: {e.Message}");
+                    Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | Failed to create room with ID {serverId}: {e.Message}");
                     SendRecreateRoomFailedResponse (clientId, $"Failed to create room: {e.Message}");
                     return;
                 }
@@ -210,6 +212,7 @@ namespace LightReflectiveMirror {
                     rooms.RemoveAt (i);
                     _cachedClientRooms.Remove (clientId);
                     Endpoint.RoomsModified ();
+                    Program.WriteLogMessage ($"Client [{clientId}] [HOST LeaveRoom] [{rooms[i].serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
                     return;
                 } else {
                     // if the person that tried to kick wasnt host and it wasnt the client leaving on their own
@@ -219,6 +222,7 @@ namespace LightReflectiveMirror {
                     if (rooms[i].clients.RemoveAll (x => x == clientId) > 0) {
                         int pos = 0;
                         byte[] sendBuffer = _sendBuffers.Rent (5);
+
 
                         sendBuffer.WriteByte (ref pos, (byte) OpCodes.PlayerDisconnected);
                         sendBuffer.WriteInt (ref pos, clientId);
@@ -240,6 +244,7 @@ namespace LightReflectiveMirror {
 
                         Endpoint.RoomsModified ();
                         _cachedClientRooms.Remove (clientId);
+                        Program.WriteLogMessage ($"Client [{clientId}] [CLIENT LeaveRoom] [{rooms[i].serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
                     }
                 }
             }
