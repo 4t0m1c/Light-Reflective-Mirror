@@ -1,6 +1,8 @@
 ﻿using LightReflectiveMirror.Endpoints;
 using System;
+using System.Linq;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace LightReflectiveMirror {
     public partial class RelayHandler {
@@ -52,20 +54,51 @@ namespace LightReflectiveMirror {
 
                 switch (opcode) {
                     case OpCodes.CreateRoom:
-                        CreateRoom (clientId,
-                            data.ReadInt (ref pos),
-                            data.ReadString (ref pos),
-                            data.ReadBool (ref pos),
-                            data.ReadString (ref pos),
-                            data.ReadBool (ref pos),
-                            data.ReadString (ref pos),
-                            data.ReadBool (ref pos),
-                            data.ReadInt (ref pos),
-                            data.ReadInt (ref pos),
-                            data.ReadString (ref pos),
-                            data.ReadString (ref pos),
-                            data.ReadInt (ref pos)
-                        );
+                        try {
+                            int _maxPlayers = data.ReadInt (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: maxPlayers={_maxPlayers}");
+
+                            string _serverName = data.ReadString (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: serverName={_serverName}");
+
+                            bool _isPublic = data.ReadBool (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: isPublic={_isPublic}");
+
+                            string _serverData = data.ReadString (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: serverData={_serverData}");
+
+                            bool _useDirectConnect = data.ReadBool (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: useDirectConnect={_useDirectConnect}");
+
+                            string _hostLocalIP = data.ReadString (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: hostLocalIP={_hostLocalIP}");
+
+                            bool _useNatPunch = data.ReadBool (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: useNatPunch={_useNatPunch}");
+
+                            int _port = data.ReadInt (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: port={_port}");
+
+                            int _appId = data.ReadInt (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: appId={_appId}");
+
+                            string _version = data.ReadString (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: version={_version}");
+
+                            string _groupId = data.ReadString (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: groupId={_groupId}");
+
+                            int _authorityLevel = data.ReadInt (ref pos);
+                            Program.WriteLogMessage ($"Debug CreateRoom: authorityLevel={_authorityLevel}");
+
+                            CreateRoom (clientId, _maxPlayers, _serverName, _isPublic, _serverData,
+                                _useDirectConnect, _hostLocalIP, _useNatPunch, _port, _appId, _version,
+                                _groupId, _authorityLevel);
+                        } catch (Exception e) {
+                            Program.WriteLogMessage ($"CreateRoom failed at position {pos}: {e.Message}");
+                            throw;
+                        }
+
                         break;
                     case OpCodes.RequestID:
                         SendClientID (clientId);
@@ -124,6 +157,28 @@ namespace LightReflectiveMirror {
 
                         HandleRecreateRoom (clientId, serverId, maxPlayers, serverName, isPublic, serverData, useDirectConnect, hostLocalIP, useNatPunch, port, appId, version, groupId, autorityLevel);
                         Program.WriteLogMessage ($"Client [{clientId}] [{opcode}] - ServerId: [{serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
+                        break;
+                    case OpCodes.RequestServerList:
+                        string requestedGroupId = data.ReadString (ref pos);
+                        int requestedAuthLevel = data.ReadInt (ref pos);
+                        int searchRegion = data.ReadInt (ref pos);
+
+                        // Filter rooms based on criteria
+                        var filteredRooms = rooms.Where (x => x.isPublic &&
+                                                              x.groupId == requestedGroupId &&
+                                                              x.authorityLevel <= requestedAuthLevel).ToList ();
+
+                        // Send response
+                        int responsePos = 0;
+                        var responseBuffer = _sendBuffers.Rent (_maxPacketSize);
+
+                        responseBuffer.WriteByte (ref responsePos, (byte) OpCodes.ServerListResponse);
+                        responseBuffer.WriteString (ref responsePos, JsonConvert.SerializeObject (filteredRooms));
+
+                        Program.transport.ServerSend (clientId, new ArraySegment<byte> (responseBuffer, 0, responsePos), 0);
+                        _sendBuffers.Return (responseBuffer);
+
+                        Program.WriteLogMessage ($"Client [{clientId}] requested server list - Group: [{requestedGroupId}], Auth: [{requestedAuthLevel}], Region: [{searchRegion}]");
                         break;
                 }
             } catch {

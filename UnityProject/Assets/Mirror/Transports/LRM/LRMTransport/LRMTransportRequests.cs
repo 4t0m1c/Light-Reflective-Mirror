@@ -1,4 +1,5 @@
-﻿using Mirror;
+﻿using System;
+using Mirror;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,6 @@ using UnityEngine.Networking;
 
 namespace LightReflectiveMirror {
     public partial class LightReflectiveMirrorTransport : Transport {
-        public void RequestServerList (LRMRegions searchRegion = LRMRegions.Any) {
-            if (_isAuthenticated && _connectedToRelay)
-                StartCoroutine (GetServerList (searchRegion));
-            else
-                Debug.Log ("You must be connected to Relay to request server list!");
-        }
 
         IEnumerator RelayConnect () {
             string url = $"http://{loadBalancerAddress}:{loadBalancerPort}/api/join/";
@@ -102,7 +97,7 @@ namespace LightReflectiveMirror {
 
             _clientSendBuffer.WriteString (ref pos, local ?? "0.0.0.0");
 
-            _isClient = true;
+            IsClient = true;
 
             clientToServerTransport.ClientSend (new System.ArraySegment<byte> (_clientSendBuffer, 0, pos), 0);
         }
@@ -205,6 +200,113 @@ namespace LightReflectiveMirror {
                     serverListUpdated?.Invoke();
                     _serverListUpdated = true;
                 }
+#endif
+            }
+        }
+
+        public void RequestServerList (string requestedGroupId = "", int requestedAuthLevel = 0, LRMRegions searchRegion = LRMRegions.Any) {
+            if (_isAuthenticated && _connectedToRelay) {
+                int pos = 0;
+                _clientSendBuffer.WriteByte (ref pos, (byte) OpCodes.RequestServerList);
+                _clientSendBuffer.WriteString (ref pos, requestedGroupId);
+                _clientSendBuffer.WriteInt (ref pos, requestedAuthLevel);
+                _clientSendBuffer.WriteInt (ref pos, (int) searchRegion);
+
+                clientToServerTransport.ClientSend (new ArraySegment<byte> (_clientSendBuffer, 0, pos), 0);
+            } else
+                Debug.Log ("You must be connected to Relay to request server list!");
+        }
+
+        IEnumerator GetServerList (string requestedGroupId, int requestedAuthLevel, LRMRegions region) {
+            if (!useLoadBalancer) {
+#if UNITY_2022_1_OR_NEWER
+                UnityWebRequest.ClearCookieCache ();
+                serverIP = serverIP.Replace ("http://", "").Replace ("https://", "");
+                string uri = $"http://{serverIP}:{endpointServerPort}/api/servers/{requestedGroupId}/{requestedAuthLevel}";
+                using (UnityWebRequest webRequest = new UnityWebRequest (uri)) {
+                    webRequest.downloadHandler = new DownloadHandlerBuffer ();
+                    webRequest.useHttpContinue = false;
+#else
+        string uri = $"http://{serverIP}:{endpointServerPort}/api/servers/{requestedGroupId}/{requestedAuthLevel}";
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(uri))
+        {
+#endif
+                    webRequest.SetRequestHeader ("Access-Control-Allow-Credentials", "true");
+                    webRequest.SetRequestHeader ("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time");
+                    webRequest.SetRequestHeader ("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                    webRequest.SetRequestHeader ("Access-Control-Allow-Origin", "*");
+
+                    yield return webRequest.SendWebRequest ();
+                    var result = webRequest.downloadHandler.text;
+
+#if UNITY_2020_1_OR_NEWER
+                    switch (webRequest.result) {
+                        case UnityWebRequest.Result.ConnectionError:
+                        case UnityWebRequest.Result.DataProcessingError:
+                        case UnityWebRequest.Result.ProtocolError:
+                            Debug.LogWarning ("LRM | Network Error while retrieving the server list!");
+                            break;
+
+                        case UnityWebRequest.Result.Success:
+                            relayServerList?.Clear ();
+                            relayServerList = JsonUtilityHelper.FromJson<Room> (result.Decompress ()).ToList ();
+                            serverListUpdated?.Invoke ();
+                            break;
+                    }
+#else
+            if (webRequest.isNetworkError || webRequest.isHttpError)
+            {
+                Debug.LogWarning("LRM | Network Error while retrieving the server list!");
+            }
+            else
+            {
+                relayServerList?.Clear();
+                relayServerList = JsonUtilityHelper.FromJson<Room>(result.Decompress()).ToList();
+                serverListUpdated?.Invoke();
+            }
+#endif
+                }
+            } else {
+                yield return StartCoroutine (RetrieveMasterServerListFromLoadBalancer (region, requestedGroupId, requestedAuthLevel));
+            }
+        }
+
+        IEnumerator RetrieveMasterServerListFromLoadBalancer (LRMRegions region, string requestedGroupId, int requestedAuthLevel) {
+            string uri = $"http://{loadBalancerAddress}:{loadBalancerPort}/api/masterlist/{appId}/{requestedGroupId}/{requestedAuthLevel}";
+
+            using (UnityWebRequest webRequest = UnityWebRequest.Get (uri)) {
+                webRequest.SetRequestHeader ("x-Region", ((int) region).ToString ());
+
+                yield return webRequest.SendWebRequest ();
+                var result = webRequest.downloadHandler.text;
+
+#if UNITY_2020_1_OR_NEWER
+                switch (webRequest.result) {
+                    case UnityWebRequest.Result.ConnectionError:
+                    case UnityWebRequest.Result.DataProcessingError:
+                    case UnityWebRequest.Result.ProtocolError:
+                        Debug.LogWarning ("LRM | Network Error while retrieving the server list!");
+                        break;
+
+                    case UnityWebRequest.Result.Success:
+                        relayServerList?.Clear ();
+                        relayServerList = JsonUtilityHelper.FromJson<Room> (result).ToList ();
+                        serverListUpdated?.Invoke ();
+                        _serverListUpdated = true;
+                        break;
+                }
+#else
+        if (webRequest.isNetworkError || webRequest.isHttpError)
+        {
+            Debug.LogWarning("LRM | Network Error while retrieving the server list!");
+        }
+        else
+        {
+            relayServerList?.Clear();
+            relayServerList = JsonUtilityHelper.FromJson<Room>(result).ToList();
+            serverListUpdated?.Invoke();
+            _serverListUpdated = true;
+        }
 #endif
             }
         }

@@ -29,8 +29,8 @@ namespace LightReflectiveMirror {
             int port,
             int appId,
             string version,
-            string groupId, // New parameter
-            int authorityLevel, // New parameter
+            string groupId,
+            int authorityLevel,
             string providedServerId = null) {
             LeaveRoom (clientId);
             Program.instance.NATConnections.TryGetValue (clientId, out IPEndPoint hostIP);
@@ -43,8 +43,8 @@ namespace LightReflectiveMirror {
                 serverData = serverData,
                 appId = appId,
                 version = version,
-                groupId = groupId, // New field
-                authorityLevel = authorityLevel, // New field
+                groupId = groupId,
+                authorityLevel = authorityLevel,
                 clients = new List<int> (),
                 serverId = providedServerId ?? GetRandomServerID (),
                 hostIP = hostIP,
@@ -66,14 +66,8 @@ namespace LightReflectiveMirror {
 
             Console.WriteLine ($"[{DateTime.UtcNow}] Client [{clientId}] | Room Created [{room.serverId}] | Group [{room.groupId}] | Auth [{room.authorityLevel}]");
 
-            int pos = 0;
-            byte[] sendBuffer = _sendBuffers.Rent (5);
-
-            sendBuffer.WriteByte (ref pos, (byte) OpCodes.RoomCreated);
-            sendBuffer.WriteString (ref pos, room.serverId);
-
-            Program.transport.ServerSend (clientId, new ArraySegment<byte> (sendBuffer, 0, pos), 0);
-            _sendBuffers.Return (sendBuffer);
+            // Use the common response method
+            SendRoomCreatedResponse (clientId, room.serverId);
 
             Endpoint.RoomsModified ();
         }
@@ -131,10 +125,20 @@ namespace LightReflectiveMirror {
 
         private void SendRoomCreatedResponse (int clientId, string serverId) {
             int pos = 0;
-            byte[] sendBuffer = _sendBuffers.Rent (5);
+            byte[] sendBuffer = _sendBuffers.Rent (500); // Increased from 5 to accommodate strings
 
             sendBuffer.WriteByte (ref pos, (byte) OpCodes.RoomCreated);
             sendBuffer.WriteString (ref pos, serverId);
+
+            // Get the room to send its additional data
+            if (_cachedRooms.TryGetValue (serverId, out Room room)) {
+                sendBuffer.WriteString (ref pos, room.groupId);
+                sendBuffer.WriteInt (ref pos, room.authorityLevel);
+            } else {
+                // Fallback if room not found (shouldn't happen)
+                sendBuffer.WriteString (ref pos, "default");
+                sendBuffer.WriteInt (ref pos, 0);
+            }
 
             Program.transport.ServerSend (clientId, new ArraySegment<byte> (sendBuffer, 0, pos), 0);
             _sendBuffers.Return (sendBuffer);

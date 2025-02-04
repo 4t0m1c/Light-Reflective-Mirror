@@ -7,7 +7,7 @@ namespace LightReflectiveMirror
     {
         public void DirectAddClient(int clientID)
         {
-            if (!_isServer)
+            if (!IsServer)
                 return;
 
             _connectedDirectClients.Add(clientID, _currentMemberId);
@@ -17,7 +17,7 @@ namespace LightReflectiveMirror
 
         public void DirectRemoveClient(int clientID)
         {
-            if (!_isServer)
+            if (!IsServer)
                 return;
 
             OnServerDisconnected?.Invoke(_connectedDirectClients.GetByFirst(clientID));
@@ -26,10 +26,10 @@ namespace LightReflectiveMirror
 
         public void DirectReceiveData(ArraySegment<byte> data, int channel, int clientID = -1)
         {
-            if (_isServer)
+            if (IsServer)
                 OnServerDataReceived?.Invoke(_connectedDirectClients.GetByFirst(clientID), data, channel);
 
-            if (_isClient)
+            if (IsClient)
                 OnClientDataReceived?.Invoke(data, channel);
         }
 
@@ -43,7 +43,7 @@ namespace LightReflectiveMirror
         {
             if (_directConnected)
             {
-                _isClient = false;
+                IsClient = false;
                 _directConnected = false;
                 OnClientDisconnected?.Invoke();
             }
@@ -55,7 +55,7 @@ namespace LightReflectiveMirror
                 _clientSendBuffer.WriteString(ref pos, _cachedHostID);
                 _clientSendBuffer.WriteBool(ref pos, false); // Direct failed, use relay
 
-                _isClient = true;
+                IsClient = true;
 
                 clientToServerTransport.ClientSend(new System.ArraySegment<byte>(_clientSendBuffer, 0, pos), 0);
             }

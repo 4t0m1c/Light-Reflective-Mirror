@@ -35,12 +35,24 @@ namespace LightReflectiveMirror
         public string extraServerData = "Map 1";
         public int maxServerPlayers = 10;
         public bool isPublicServer = true;
+        public string groupId = "default";
+        public int authorityLevel = 0;
 
         private const string LOCALHOST = "127.0.0.1";
 
         // Server list variables
         public UnityEvent serverListUpdated;
         public List<Room> relayServerList { private set; get; } = new List<Room>();
+
+        public bool IsServer {
+            get => _isServer;
+            set => _isServer = value;
+        }
+
+        public bool IsClient {
+            get => _isClient;
+            set => _isClient = value;
+        }
 
         // Current Server Information
         public string serverStatus = "Not Started.";

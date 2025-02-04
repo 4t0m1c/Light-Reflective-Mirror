@@ -25,7 +25,7 @@ namespace LightReflectiveMirror
 
             if (!newClientEP.Address.Equals(_relayPuncherIP.Address))
             {
-                if (_isServer)
+                if (IsServer)
                 {
                     if (_serverProxies.TryGetByFirst(newClientEP, out SocketProxy foundProxy))
                     {
@@ -39,7 +39,7 @@ namespace LightReflectiveMirror
                     }
                 }
 
-                if (_isClient)
+                if (IsClient)
                 {
                     if (_clientProxy == null)
                     {
