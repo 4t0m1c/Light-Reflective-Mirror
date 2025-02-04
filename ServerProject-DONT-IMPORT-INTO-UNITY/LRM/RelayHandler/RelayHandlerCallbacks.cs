@@ -62,7 +62,9 @@ namespace LightReflectiveMirror {
                             data.ReadBool (ref pos),
                             data.ReadInt (ref pos),
                             data.ReadInt (ref pos),
-                            data.ReadString (ref pos)
+                            data.ReadString (ref pos),
+                            data.ReadString (ref pos),
+                            data.ReadInt (ref pos)
                         );
                         break;
                     case OpCodes.RequestID:
@@ -117,8 +119,10 @@ namespace LightReflectiveMirror {
                         int port = data.ReadInt (ref pos);
                         int appId = data.ReadInt (ref pos);
                         string version = data.ReadString (ref pos);
+                        string groupId = data.ReadString (ref pos);
+                        int autorityLevel = data.ReadInt (ref pos);
 
-                        HandleRecreateRoom (clientId, serverId, maxPlayers, serverName, isPublic, serverData, useDirectConnect, hostLocalIP, useNatPunch, port, appId, version);
+                        HandleRecreateRoom (clientId, serverId, maxPlayers, serverName, isPublic, serverData, useDirectConnect, hostLocalIP, useNatPunch, port, appId, version, groupId, autorityLevel);
                         Program.WriteLogMessage ($"Client [{clientId}] [{opcode}] - ServerId: [{serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
                         break;
                 }

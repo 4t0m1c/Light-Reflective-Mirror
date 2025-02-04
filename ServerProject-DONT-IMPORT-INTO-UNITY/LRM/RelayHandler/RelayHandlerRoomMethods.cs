@@ -17,7 +17,21 @@ namespace LightReflectiveMirror {
         /// <param name="hostLocalIP">The hosts local IP</param>
         /// <param name="useNatPunch">Whether or not, the host is supporting NAT Punch</param>
         /// <param name="port">The port of the direct connect transport on the host</param>
-        private void CreateRoom (int clientId, int maxPlayers, string serverName, bool isPublic, string serverData, bool useDirectConnect, string hostLocalIP, bool useNatPunch, int port, int appId, string version, string providedServerId = null) {
+        private void CreateRoom (
+            int clientId,
+            int maxPlayers,
+            string serverName,
+            bool isPublic,
+            string serverData,
+            bool useDirectConnect,
+            string hostLocalIP,
+            bool useNatPunch,
+            int port,
+            int appId,
+            string version,
+            string groupId, // New parameter
+            int authorityLevel, // New parameter
+            string providedServerId = null) {
             LeaveRoom (clientId);
             Program.instance.NATConnections.TryGetValue (clientId, out IPEndPoint hostIP);
 
@@ -29,6 +43,8 @@ namespace LightReflectiveMirror {
                 serverData = serverData,
                 appId = appId,
                 version = version,
+                groupId = groupId, // New field
+                authorityLevel = authorityLevel, // New field
                 clients = new List<int> (),
                 serverId = providedServerId ?? GetRandomServerID (),
                 hostIP = hostIP,
@@ -36,14 +52,19 @@ namespace LightReflectiveMirror {
                 supportsDirectConnect = hostIP != null && useDirectConnect,
                 port = port,
                 useNATPunch = useNatPunch,
-                relayInfo = new RelayAddress { address = Program.publicIP, port = Program.conf.TransportPort, endpointPort = Program.conf.EndpointPort, serverRegion = Program.conf.LoadBalancerRegion }
+                relayInfo = new RelayAddress {
+                    address = Program.publicIP,
+                    port = Program.conf.TransportPort,
+                    endpointPort = Program.conf.EndpointPort,
+                    serverRegion = Program.conf.LoadBalancerRegion
+                }
             };
 
             rooms.Add (room);
             _cachedClientRooms.Add (clientId, room);
             _cachedRooms.Add (room.serverId, room);
 
-            Console.WriteLine ($"[{DateTime.UtcNow}] Client [{clientId}] | Room Created [{room.serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
+            Console.WriteLine ($"[{DateTime.UtcNow}] Client [{clientId}] | Room Created [{room.serverId}] | Group [{room.groupId}] | Auth [{room.authorityLevel}]");
 
             int pos = 0;
             byte[] sendBuffer = _sendBuffers.Rent (5);
@@ -57,7 +78,21 @@ namespace LightReflectiveMirror {
             Endpoint.RoomsModified ();
         }
 
-        private void HandleRecreateRoom (int clientId, string serverId, int maxPlayers, string serverName, bool isPublic, string serverData, bool useDirectConnect, string hostLocalIP, bool useNatPunch, int port, int appId, string version) {
+        private void HandleRecreateRoom (
+            int clientId,
+            string serverId,
+            int maxPlayers,
+            string serverName,
+            bool isPublic,
+            string serverData,
+            bool useDirectConnect,
+            string hostLocalIP,
+            bool useNatPunch,
+            int port,
+            int appId,
+            string version,
+            string groupId, // New parameter
+            int authorityLevel) {
             Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | Attempting to recreate room with ID: {serverId}");
 
             if (_cachedRooms.TryGetValue (serverId, out Room existingRoom)) {
@@ -82,7 +117,7 @@ namespace LightReflectiveMirror {
             } else {
                 // Attempt to create a new room with the provided server ID
                 try {
-                    CreateRoom (clientId, maxPlayers, serverName, isPublic, serverData, useDirectConnect, hostLocalIP, useNatPunch, port, appId, version, serverId);
+                    CreateRoom (clientId, maxPlayers, serverName, isPublic, serverData, useDirectConnect, hostLocalIP, useNatPunch, port, appId, version, groupId, authorityLevel, serverId);
                     Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | New room created with provided ID: {serverId}");
                 } catch (Exception e) {
                     Console.WriteLine ($"[{DateTime.UtcNow}] LRM Server | Failed to create room with ID {serverId}: {e.Message}");

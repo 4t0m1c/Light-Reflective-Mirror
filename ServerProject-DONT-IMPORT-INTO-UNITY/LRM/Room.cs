@@ -17,6 +17,9 @@ namespace LightReflectiveMirror
 
         public int appId;
         public string version;
+        
+        public string groupId;          // More generic than 'companyId' for broader use
+        public int authorityLevel;      // Numeric authority level (0 being lowest)
 
         public int currentPlayers { get => clients.Count + 1; } // player count
 
