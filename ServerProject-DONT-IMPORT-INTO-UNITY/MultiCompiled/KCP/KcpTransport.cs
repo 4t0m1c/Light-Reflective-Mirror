@@ -128,18 +128,11 @@ namespace kcp2k {
 
         public override void ClientConnect (string address) { }
 
-        public override void ClientSend (int channelId, ArraySegment<byte> segment) {
+        public override void ClientSend (ArraySegment<byte> segment, int channelId) {
             // switch to kcp channel.
             // unreliable or reliable.
             // default to reliable just to be sure.
-            switch (channelId) {
-                case 1:
-                    client.Send (segment, KcpChannel.Unreliable);
-                    break;
-                default:
-                    client.Send (segment, KcpChannel.Reliable);
-                    break;
-            }
+            client.Send(segment, ToKcpChannel(channelId));
         }
 
         public override void ClientDisconnect () => client.Disconnect ();
@@ -173,7 +166,8 @@ namespace kcp2k {
         //     // OnServerDataSent?.Invoke (connectionId, segment, channelId);
         // }
 
-        public override void ServerSend (int connectionId, int channelId, ArraySegment<byte> segment) {
+        public override void ServerSend(int connectionId, ArraySegment<byte> segment, int channelId)
+        {
             // switch to kcp channel.
             // unreliable or reliable.
             // default to reliable just to be sure.
@@ -234,7 +228,7 @@ namespace kcp2k {
         // network.
         // => instead we always use MTU sized batches.
         // => people can still send maxed size if needed.
-        public int GetBatchThreshold (int channelId) =>
+        public override int GetBatchThreshold (int channelId) =>
             KcpPeer.UnreliableMaxMessageSize (config.Mtu);
 
         // server statistics
