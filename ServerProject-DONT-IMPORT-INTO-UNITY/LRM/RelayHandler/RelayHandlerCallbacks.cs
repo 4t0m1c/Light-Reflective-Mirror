@@ -109,8 +109,13 @@ namespace LightReflectiveMirror {
                         break;
                     case OpCodes.JoinServer:
                         string _serverId = data.ReadString (ref pos);
-                        JoinRoom (clientId, _serverId, data.ReadBool (ref pos), data.ReadString (ref pos));
-                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}] [{_serverId}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
+                        bool canDirectConnect = data.ReadBool (ref pos);
+                        string localIP = data.ReadString (ref pos);
+                        string joinGroupId = data.ReadString (ref pos); // New: Read group ID
+                        int joinAuthLevel = data.ReadInt (ref pos); // New: Read auth level
+
+                        JoinRoom (clientId, _serverId, canDirectConnect, localIP, joinGroupId, joinAuthLevel);
+                        Program.WriteLogMessage ($"Client [{clientId}] [{opcode}] [{_serverId}] Group: [{joinGroupId}] Auth: [{joinAuthLevel}] | Rooms [{string.Join (',', _cachedRooms.Keys)}]");
                         break;
                     case OpCodes.KickPlayer:
                         LeaveRoom (data.ReadInt (ref pos), clientId);

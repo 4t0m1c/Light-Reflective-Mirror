@@ -162,11 +162,22 @@ namespace LightReflectiveMirror {
         /// <param name="serverId">The server ID of the room</param>
         /// <param name="canDirectConnect">If the client is capable of a direct connection</param>
         /// <param name="localIP">The local IP of the client joining</param>
-        private void JoinRoom (int clientId, string serverId, bool canDirectConnect, string localIP) {
+        private void JoinRoom (int clientId, string serverId, bool canDirectConnect, string localIP, string requestedGroupId, int requestedAuthLevel) {
             LeaveRoom (clientId);
 
             if (_cachedRooms.ContainsKey (serverId)) {
                 var room = _cachedRooms[serverId];
+
+                // Validate group and authority
+                if (room.groupId != requestedGroupId || requestedAuthLevel < room.authorityLevel) {
+                    int pos = 0;
+                    byte[] sendBuffer = _sendBuffers.Rent (1);
+                    sendBuffer.WriteByte (ref pos, (byte) OpCodes.ServerLeft);
+                    Program.transport.ServerSend (clientId, new ArraySegment<byte> (sendBuffer, 0, pos), 0);
+                    _sendBuffers.Return (sendBuffer);
+                    Program.WriteLogMessage ($"Join rejected - Group: {requestedGroupId} != {room.groupId} or Auth: {requestedAuthLevel} < {room.authorityLevel}");
+                    return;
+                }
 
                 if (room.clients.Count < room.maxPlayers) {
                     room.clients.Add (clientId);
@@ -218,13 +229,13 @@ namespace LightReflectiveMirror {
             }
 
             // If it got to here, then the server was not found, or full. Tell the client.
-            int pos = 0;
-            byte[] sendBuffer = _sendBuffers.Rent (1);
+            int _pos = 0;
+            byte[] _sendBuffer = _sendBuffers.Rent (1);
 
-            sendBuffer.WriteByte (ref pos, (byte) OpCodes.ServerLeft);
+            _sendBuffer.WriteByte (ref _pos, (byte) OpCodes.ServerLeft);
 
-            Program.transport.ServerSend (clientId, new ArraySegment<byte> (sendBuffer, 0, pos), 0);
-            _sendBuffers.Return (sendBuffer);
+            Program.transport.ServerSend (clientId, new ArraySegment<byte> (_sendBuffer, 0, _pos), 0);
+            _sendBuffers.Return (_sendBuffer);
         }
 
         /// <summary>

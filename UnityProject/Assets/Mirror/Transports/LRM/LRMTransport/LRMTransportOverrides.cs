@@ -69,14 +69,11 @@ namespace LightReflectiveMirror {
                 _clientSendBuffer.WriteByte (ref pos, (byte) OpCodes.JoinServer);
                 _clientSendBuffer.WriteString (ref pos, address);
                 _clientSendBuffer.WriteBool (ref pos, _directConnectModule != null);
+                _clientSendBuffer.WriteString (ref pos, GetLocalIp () ?? "0.0.0.0");
+                _clientSendBuffer.WriteString (ref pos, groupId); // Add group ID
+                _clientSendBuffer.WriteInt (ref pos, authorityLevel); // Add authority level
 
-                if (_directConnectModule == null) {
-                    _clientSendBuffer.WriteString (ref pos, "0.0.0.0");
-                } else {
-                    _clientSendBuffer.WriteString (ref pos, GetLocalIp () ?? "0.0.0.0");
-                }
-
-                IsClient = true;
+                _isClient = true;
                 clientToServerTransport.ClientSend (new ArraySegment<byte> (_clientSendBuffer, 0, pos), 0);
             } else {
                 StartCoroutine (JoinOtherRelayAndMatch (room, address));
@@ -84,18 +81,22 @@ namespace LightReflectiveMirror {
         }
 
         public override void ClientDisconnect () {
-            IsClient = false;
-
-            // make sure we are even connected to a relay
-            if (Available ()) {
+            if (IsClient) {
+                _isClient = false;
                 int pos = 0;
                 _clientSendBuffer.WriteByte (ref pos, (byte) OpCodes.LeaveRoom);
 
-                clientToServerTransport.ClientSend (new ArraySegment<byte> (_clientSendBuffer, 0, pos), 0);
+                // Send leave room notification
+                if (Available ()) {
+                    clientToServerTransport.ClientSend (new ArraySegment<byte> (_clientSendBuffer, 0, pos), 0);
+                }
             }
 
-            if (_directConnectModule != null)
-                _directConnectModule.ClientDisconnect ();
+            // if (_directConnectModule != null) _directConnectModule.ClientDisconnect (); //Commented due to breaking reconnection ability
+
+            // Clean up state
+            _directConnected = false;
+            _cachedHostID = null;
         }
 
         public override void ClientSend (ArraySegment<byte> segment, int channelId) {

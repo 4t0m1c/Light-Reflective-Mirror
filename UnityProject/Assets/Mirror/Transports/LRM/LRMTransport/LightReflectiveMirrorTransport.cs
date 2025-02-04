@@ -2,6 +2,7 @@ using kcp2k;
 using Mirror;
 using Mirror.SimpleWeb;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -140,7 +141,7 @@ namespace LightReflectiveMirror {
 
                 // Read the opcode of the incoming data, this allows us to know what its used for.
                 OpCodes opcode = (OpCodes) data.ReadByte (ref pos);
-                Debug.Log ($"LRM Debug: Received opcode {opcode}");
+                // Debug.Log ($"LRM Debug: Received opcode {opcode}");
 
                 switch (opcode) {
                     case OpCodes.Authenticated:
@@ -167,8 +168,10 @@ namespace LightReflectiveMirror {
                         }
 
                         // If we are the client, invoke the callback
-                        if (IsClient)
+                        if (_isClient && NetworkClient.isConnected) {
                             OnClientDataReceived?.Invoke (new ArraySegment<byte> (recvData), channel);
+                        }
+
                         break;
 
                     case OpCodes.ServerLeft:
