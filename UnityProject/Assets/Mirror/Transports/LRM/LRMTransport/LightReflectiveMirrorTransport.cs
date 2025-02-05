@@ -310,7 +310,7 @@ namespace LightReflectiveMirror {
                     case OpCodes.ServerListResponse:
                         try {
                             var serverListJson = data.ReadString (ref pos);
-                            Debug.Log ($"LRM Debug: Received server list JSON: {serverListJson}");
+                            // Debug.Log ($"LRM Debug: Received server list JSON: {serverListJson}");
                             relayServerList = JsonConvert.DeserializeObject<List<Room>> (serverListJson);
                             serverListUpdated?.Invoke ();
                         } catch (Exception e) {

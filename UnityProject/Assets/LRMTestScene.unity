@@ -418,7 +418,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b0fecffa3f624585964b0d0eb21b18e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  port: 7777
+  port: 7778
   DualMode: 1
   NoDelay: 1
   Interval: 10
@@ -1233,7 +1233,8 @@ GameObject:
   - component: {fileID: 1282001519}
   - component: {fileID: 1282001522}
   - component: {fileID: 1282001521}
-  - component: {fileID: 1282001523}
+  - component: {fileID: 1282001525}
+  - component: {fileID: 1282001524}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -1367,8 +1368,8 @@ MonoBehaviour:
   extraServerData: Map 1
   maxServerPlayers: 2
   isPublicServer: 1
-  groupId: group
-  authorityLevel: 0
+  groupId: test
+  authorityLevel: 1
   serverListUpdated:
     m_PersistentCalls:
       m_Calls: []
@@ -1376,7 +1377,7 @@ MonoBehaviour:
   serverId: 
   appId: 1
   region: 1
---- !u!114 &1282001523
+--- !u!114 &1282001524
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1385,10 +1386,42 @@ MonoBehaviour:
   m_GameObject: {fileID: 1282001517}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2dd4f565cad94dd2b625988b139bdebe, type: 3}
+  m_Script: {fileID: 11500000, guid: fb4a06b6c1dde694b8753e95bc711c8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _lrm: {fileID: 1282001522}
+  enableActiveDiscovery: 1
+  BroadcastAddress: 
+  serverBroadcastListenPort: 47777
+  ActiveDiscoveryInterval: 3
+  transport: {fileID: 205579055}
+  OnServerFound:
+    m_PersistentCalls:
+      m_Calls: []
+  secretHandshake: -2671829214631319289
+  serverName: Local Server
+  maxPlayers: 10
+  uniqueServerId: 
+  OnAuthenticatedServerFound:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1282001525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1282001517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54de1c5fb8e5e3b4abbfc54667348d1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lrmTransport: {fileID: 1282001522}
+  kcpTransport: {fileID: 205579055}
+  lrmPort: 7777
+  kcpPort: 7778
+  groupId: test
+  authLevel: 1
 --- !u!1 &1458789072
 GameObject:
   m_ObjectHideFlags: 0
