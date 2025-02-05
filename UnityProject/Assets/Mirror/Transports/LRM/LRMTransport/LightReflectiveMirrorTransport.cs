@@ -2,11 +2,10 @@ using kcp2k;
 using Mirror;
 using Mirror.SimpleWeb;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using Unity.Plastic.Newtonsoft.Json;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace LightReflectiveMirror {
